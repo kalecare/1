@@ -3,53 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Live Graph</title>
-
-    <!-- Chart.js CDN -->
+    <title>Live Random Number Graph</title>
+    
+    <!-- Chart.js CDN for interactive graphing -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+    
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
+            background-color: #0d1117;
+            color: #f0f6fc;
             display: flex;
             flex-direction: column;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             min-height: 100vh;
             margin: 0;
             padding: 20px;
         }
 
-        .container {
-            background-color: #1e293b;
+        .dashboard-card {
+            background-color: #161b22;
             padding: 30px;
             border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            border: 1px solid #30363d;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             width: 100%;
             max-width: 800px;
             text-align: center;
-            border: 1px solid #334155;
         }
 
-        h1 {
-            color: #94a3b8;
-            font-size: 1.2rem;
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 20px;
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            color: #8b949e;
+            font-size: 0.85rem;
             text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 10px;
+            letter-spacing: 1px;
         }
 
-        .live-value {
-            font-size: 3.5rem;
+        .stat-value {
+            font-size: 2.5rem;
             font-weight: bold;
-            color: #38bdf8;
+            color: #58a6ff;
             font-family: monospace;
-            margin-bottom: 20px;
         }
 
-        .chart-box {
+        .chart-container {
             position: relative;
             height: 350px;
             width: 100%;
@@ -58,35 +69,50 @@
 </head>
 <body>
 
-<div class="container">
-    <h1>Live Python Data Stream (1–10)</h1>
-    <div class="live-value" id="current-number">--</div>
+<div class="dashboard-card">
+    <div class="stats-container">
+        <div class="stat-box">
+            <span class="stat-label">Latest Value</span>
+            <span class="stat-value" id="current-val">--</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-label">Target Range</span>
+            <span class="stat-value" style="color: #2ea043;">1 - 10</span>
+        </div>
+    </div>
 
-    <div class="chart-box">
+    <!-- Graph Canvas -->
+    <div class="chart-container">
         <canvas id="liveChart"></canvas>
     </div>
 </div>
 
 <script>
-    const currentNumElem = document.getElementById('current-number');
-    const MAX_DATA_POINTS = 20; // Keep the last 20 readings on screen
+    // Configuration
+    const MAX_DATA_POINTS = 20; // Maximum number of points shown on graph at once
+    let secondCounter = 0;
 
-    // --- Initialize Chart.js Line Chart ---
+    // Helper: Random integer generator (1 to 10)
+    function getRandomVal() {
+        return Math.floor(Math.random() * 10) + 1;
+    }
+
+    // Initialize Chart.js
     const ctx = document.getElementById('liveChart').getContext('2d');
     const liveChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: [], // Time labels
+            labels: [],
             datasets: [{
-                label: 'Random Value',
+                label: 'Real-Time Value',
                 data: [],
-                borderColor: '#38bdf8',
-                backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                borderColor: '#58a6ff',
+                backgroundColor: 'rgba(88, 166, 255, 0.15)',
                 borderWidth: 3,
                 fill: true,
-                tension: 0.3, // Curve smoothness
-                pointRadius: 4,
-                pointBackgroundColor: '#38bdf8'
+                tension: 0.3, // Smooth curve
+                pointRadius: 5,
+                pointBackgroundColor: '#58a6ff'
             }]
         },
         options: {
@@ -94,45 +120,47 @@
             maintainAspectRatio: false,
             scales: {
                 x: {
-                    grid: { color: '#334155' },
-                    ticks: { color: '#94a3b8' }
+                    grid: { color: '#21262d' },
+                    ticks: { color: '#8b949e' }
                 },
                 y: {
                     min: 0,
                     max: 10,
-                    grid: { color: '#334155' },
-                    ticks: { color: '#94a3b8', stepSize: 1 }
+                    grid: { color: '#21262d' },
+                    ticks: { color: '#8b949e', stepSize: 1 }
                 }
             },
             plugins: {
                 legend: { display: false }
-            }
+            },
+            animation: { duration: 300 } // Smooth 300ms transition on step updates
         }
     });
 
-    // --- Listen to Python SSE Stream ---
-    const eventSource = new EventSource('/stream-data');
+    // Function to add new data point every second
+    function updateChart() {
+        secondCounter++;
+        const newVal = getRandomVal();
 
-    eventSource.onmessage = function(event) {
-        const newNumber = parseInt(event.data);
-        const timeStamp = new Date().toLocaleTimeString();
+        // Update stats display text
+        document.getElementById('current-val').innerText = newVal;
 
-        // 1. Update text display
-        currentNumElem.innerText = newNumber;
+        // Add new label and data point
+        liveChart.data.labels.push(`${secondCounter}s`);
+        liveChart.data.datasets[0].data.push(newVal);
 
-        // 2. Add new data point to graph
-        liveChart.data.labels.push(timeStamp);
-        liveChart.data.datasets[0].data.push(newNumber);
-
-        // 3. Keep sliding window of points
+        // Keep rolling window of MAX_DATA_POINTS
         if (liveChart.data.labels.length > MAX_DATA_POINTS) {
             liveChart.data.labels.shift();
             liveChart.data.datasets[0].data.shift();
         }
 
-        // 4. Redraw Chart
-        liveChart.update('none'); // Fast update without full animation
-    };
+        liveChart.update();
+    }
+
+    // Run initial step and set 1-second interval
+    updateChart();
+    setInterval(updateChart, 1000);
 </script>
 
 </body>
