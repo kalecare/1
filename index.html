@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Random Number Graph</title>
+    
+    <!-- Chart.js CDN for interactive graphing -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0d1117;
+            color: #f0f6fc;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .dashboard-card {
+            background-color: #161b22;
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid #30363d;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 20px;
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            color: #8b949e;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #58a6ff;
+            font-family: monospace;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-card">
+    <div class="stats-container">
+        <div class="stat-box">
+            <span class="stat-label">Latest Value</span>
+            <span class="stat-value" id="current-val">--</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-label">Target Range</span>
+            <span class="stat-value" style="color: #2ea043;">1 - 10</span>
+        </div>
+    </div>
+
+    <!-- Graph Canvas -->
+    <div class="chart-container">
+        <canvas id="liveChart"></canvas>
+    </div>
+</div>
+
+<script>
+    // Configuration
+    const MAX_DATA_POINTS = 20; // Maximum number of points shown on graph at once
+    let secondCounter = 0;
+
+    // Helper: Random integer generator (1 to 10)
+    function getRandomVal() {
+        return Math.floor(Math.random() * 10) + 1;
+    }
+
+    // Initialize Chart.js
+    const ctx = document.getElementById('liveChart').getContext('2d');
+    const liveChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Real-Time Value',
+                data: [],
+                borderColor: '#58a6ff',
+                backgroundColor: 'rgba(88, 166, 255, 0.15)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.3, // Smooth curve
+                pointRadius: 5,
+                pointBackgroundColor: '#58a6ff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    grid: { color: '#21262d' },
+                    ticks: { color: '#8b949e' }
+                },
+                y: {
+                    min: 0,
+                    max: 10,
+                    grid: { color: '#21262d' },
+                    ticks: { color: '#8b949e', stepSize: 1 }
+                }
+            },
+            plugins: {
+                legend: { display: false }
+            },
+            animation: { duration: 300 } // Smooth 300ms transition on step updates
+        }
+    });
+
+    // Function to add new data point every second
+    function updateChart() {
+        secondCounter++;
+        const newVal = getRandomVal();
+
+        // Update stats display text
+        document.getElementById('current-val').innerText = newVal;
+
+        // Add new label and data point
+        liveChart.data.labels.push(`${secondCounter}s`);
+        liveChart.data.datasets[0].data.push(newVal);
+
+        // Keep rolling window of MAX_DATA_POINTS
+        if (liveChart.data.labels.length > MAX_DATA_POINTS) {
+            liveChart.data.labels.shift();
+            liveChart.data.datasets[0].data.shift();
+        }
+
+        liveChart.update();
+    }
+
+    // Run initial step and set 1-second interval
+    updateChart();
+    setInterval(updateChart, 1000);
+</script>
+
+</body>
+</html>
