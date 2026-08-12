@@ -1,48 +1,28 @@
-# Save and run this Python script to generate the HTML file
-html_template = """<!DOCTYPE html>
-<html>
-<head>
-    <title>Python-Generated Live Graph</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
-        .container { max-width: 700px; margin: 0 auto; background: #222; padding: 20px; border-radius: 12px; }
-    </style>
-</head>
-<body>
+import time
+import random
+from flask import Flask, Response, render_template
 
-<div class="container">
-    <h2>Live Graph Stream (1 - 10)</h2>
-    <canvas id="chart"></canvas>
-</div>
+app = Flask(__name__, template_folder='.')
 
-<script>
-    const ctx = document.getElementById('chart').getContext('2d');
-    const chart = new Chart(ctx, {
-        type: 'line',
-        data: { labels: [], datasets: [{ label: 'Value', data: [], borderColor: '#00ff88', tension: 0.3 }] },
-        options: { scales: { y: { min: 1, max: 10 } } }
-    });
+@app.route('/')
+def index():
+    # Serves the index.html page
+    return render_template('index.html')
 
-    let sec = 0;
-    setInterval(() => {
-        sec++;
-        const val = Math.floor(Math.random() * 10) + 1;
-        chart.data.labels.push(sec + 's');
-        chart.data.datasets[0].data.push(val);
-        
-        if (chart.data.labels.length > 15) {
-            chart.data.labels.shift();
-            chart.data.datasets[0].data.shift();
-        }
-        chart.update();
-    }, 1000);
-</script>
-</body>
-</html>
-"""
+@app.route('/stream-data')
+def stream_data():
+    def generate_numbers():
+        while True:
+            # Generate random integer between 1 and 10
+            number = random.randint(1, 10)
+            
+            # Send number as a Server-Sent Event (SSE)
+            yield f"data: {number}\n\n"
+            time.sleep(1)  # Delay 1 second
 
-with open("live_graph.html", "w", encoding="utf-8") as f:
-    f.write(html_template)
+    return Response(generate_numbers(), mimetype='text/event-stream')
 
-print("Generated live_graph.html successfully!")
+if __name__ == '__main__':
+    # Install Flask first if needed: pip install flask
+    print("Starting Flask server at http://127.0.0.1:5000")
+    app.run(debug=True, port=5000)
