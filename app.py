@@ -2,6 +2,24 @@ import time
 import random
 from flask import Flask, Response, render_template
 
+import os
+
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "App is running!"
+
+if __name__ == '__main__':
+    # Retrieve Render's assigned port, defaulting to 10000
+    port = int(os.environ.get('PORT', 10000))
+    # CRITICAL: host MUST be '0.0.0.0'
+    app.run(host='0.0.0.0', port=port)
+
+
+
+
 app = Flask(__name__, template_folder='.')
 
 @app.route('/')
